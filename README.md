@@ -1,48 +1,83 @@
-# 🛋️ DecorDraft
+# 🛋️ RoomVis
 
-A furniture room designer application developed as part of the PUSL3122 HCI, Computer Graphics and Visualisation module at Plymouth University.
+A web-based furniture room designer application developed as part of the PUSL3122 HCI, Computer Graphics and Visualisation module at Plymouth University, Sri Lanka.
 
 ## 📌 Overview
-DecorDraft allows designers and customers to visualise how furniture items would look in a room. Users can create room layouts in 2D, convert them to 3D views, customise colours and shading, and save their designs for future use.
-
-## 👥 Group Members
-| Name | Student ID | Role |
-|------|-----------|------|
-| Member 1 | xxxxxxxx | Project Lead |
-| Member 2 | xxxxxxxx | |
-| Member 3 | xxxxxxxx | |
-| Member 4 | xxxxxxxx | |
-| Member 5 | xxxxxxxx | |
-| Member 6 | xxxxxxxx | |
-
-## 🛠️ Tech Stack
-- Java (Swing)
-- NetBeans / IntelliJ IDEA
-- MySQL (for user accounts and saved designs)
-
-## 🚀 Features
-- User login and registration (Admin/Designer + Regular User)
-- Room setup (size, shape, colour scheme)
-- 2D furniture layout
-- 3D visualisation
-- Furniture scaling, shading and colour customisation
-- Save, edit and delete designs
-
-## 📁 Project Structure
-```
-DecorDraft/
-├── src/          # Source code
-├── assets/       # Images, 3D models, icons
-├── docs/         # Report, wireframes, design docs
-└── README.md
-```
+RoomVis allows designers and customers to visualise how furniture items would look in a room. Users can create room layouts in 2D, convert them to a realistic 3D view, customise colours and shading, and save their designs for future use.
 
 ## 🔗 Project Links
+- 🎨 Figma UI Design: https://www.figma.com/design/ebJiwM8lyOoqWNlUFTkVjc/RoomVis?node-id=0-1&p=f&t=dxCHzi8inwd80vOw-0
 - 📄 Report: *To be added*
 - 🎥 Video Presentation: *To be added*
 
+## 👥 Group Members & Roles
+
+| Name | Student ID | Role | Pages |
+|------|------------|------|-------|
+| Konara Bandara | 10952449 | Project Vision & User Identity | HomePage, LoginPage, RegisterPage, StorePage, ProductDetailPage |
+| Mudiyanselage Herath | 10952432 | 2D Architectural Engineer | EditorPage (2D Layout Module) |
+| Thennakoon Thennakoon | 10953085 | 3D Visualisation Lead | EditorPage (3D Viewport Module) |
+| Jothikalananthan Janusha | 10952971 | Interaction Designer (HCI) | CartPage, CheckoutPage, OrdersPage |
+| Dasanayaka Seneviratne | 10953043 | Portfolio Manager | MyDesignsPage |
+| Bethmage Perera | 10952829 | Inventory & Store Manager | AdminPage |
+
+## 🛠️ Tech Stack
+
+### 💻 Frontend
+- **Framework:** React (v19) + Vite
+- **3D Engine:** Three.js + React-Three-Fiber + React-Three-Drei
+- **Styling:** Tailwind CSS (v4)
+- **Icons:** Lucide React
+- **Routing:** React Router (v7)
+- **HTTP Client:** Axios
+
+### ⚙️ Backend
+- **Runtime:** Node.js
+- **Framework:** Express.js
+- **Auth:** JWT + Bcryptjs
+- **API:** RESTful
+
+### 🗄️ Database
+- **Database:** MongoDB (NoSQL)
+- **ODM:** Mongoose
+
+### 🛠️ Utilities
+- **Image Processing:** html-to-image
+- **3D Models:** GLTF/GLB loader
+
+## 🚀 Features
+- Secure user login and registration (JWT-based)
+- Admin and regular user account types
+- Room setup — define width, depth, and shape (Rectangle / L-Shape)
+- 2D top-down floor plan with drag-and-drop furniture placement
+- 3D perspective visualisation with realistic lighting and shadows
+- Furniture scaling, rotation, and colour customisation
+- Undo/Redo with keyboard shortcuts
+- Toast notifications and system feedback
+- Save, rename, edit, and delete designs
+- Cart, Checkout, and Orders management
+- Admin furniture inventory management
+- Furniture catalog with product details and category filtering
+- Template system (Admin official templates + user private designs)
+
+## 📁 Project Structure
+```
+RoomVis/
+├── frontend/        # React frontend (Vite)
+│   ├── src/
+│   │   ├── pages/   # HomePage, LoginPage, RegisterPage, EditorPage, etc.
+│   │   ├── components/
+│   │   └── context/
+├── backend/         # Node.js + Express backend
+│   ├── models/      # Mongoose schemas
+│   ├── routes/      # API routes
+│   └── middleware/
+├── docs/            # Report, wireframes, design documents
+└── README.md
+```
+
 ## 📦 External Resources
-*All external assets used will be credited here as development progresses.*
+*All external 3D models, assets, and libraries will be credited here as development progresses.*
 
 ## 📅 Submission Deadline
 19th March 2026 — PUSL3122 Plymouth University Sri Lanka
