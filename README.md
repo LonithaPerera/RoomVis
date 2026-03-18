@@ -1,6 +1,6 @@
 # 🛋️ RoomVis
 
-A web-based furniture room designer application developed as part of the PUSL3122 HCI, Computer Graphics and Visualisation module at Plymouth University Sri Lanka.
+A web-based furniture room designer application developed as part of the PUSL3122 HCI, Computer Graphics and Visualisation module at Plymouth University, Sri Lanka.
 
 ## 📌 Overview
 RoomVis allows designers and customers to visualise how furniture items would look in a room. Users can create room layouts in 2D, convert them to a realistic 3D view, customise colours and shading, and save their designs for future use.
@@ -48,14 +48,14 @@ RoomVis allows designers and customers to visualise how furniture items would lo
 ## 🚀 Features
 - Secure user login and registration (JWT-based)
 - Admin and regular user account types
-- Room setup — define width, depth, and shape (Rectangle / L-Shape / T-Shape / U-Shape)
+- Room setup — define width, depth, and shape (Rectangle / L-Shape)
 - 2D top-down floor plan with drag-and-drop furniture placement
 - 3D perspective visualisation with realistic lighting and shadows
 - Furniture scaling, rotation, and colour customisation
-- Undo/Redo (20-step history) with keyboard shortcuts
+- Undo/Redo with keyboard shortcuts
 - Toast notifications and system feedback
-- Save, rename, edit and delete designs
-- Cart, Checkout and Orders management
+- Save, rename, edit, and delete designs
+- Cart, Checkout, and Orders management
 - Admin furniture inventory management
 - Furniture catalog with product details and category filtering
 - Template system (Admin official templates + user private designs)
