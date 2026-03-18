@@ -12,14 +12,14 @@ RoomVis allows designers and customers to visualise how furniture items would lo
 
 ## 👥 Group Members & Roles
 
-| Name | Student ID | Role |
-|------|------------|------|
-| Bethmage Perera | 10952829 | Project Lead — HomePage, Login, Register (User Auth) |
-| Dasanayaka Seneviratne | 10953043 | 2D Room Setup — EditorPage 2D Module |
-| Konara Bandara | 10952449 | 3D Visualisation Expert — EditorPage 3D Module |
-| Mudiyanselage Herath | 10952432 | Interaction Designer (HCI) — Property Panels, Undo/Redo |
-| Thennakoon Thennakoon | 10953085 | Portfolio & Template Manager — MyDesignsPage |
-| Jothikalananthan Janusha | 10952971 | Admin Inventory & Store — AdminPage, StorePage |
+| Name | Student ID | Role | Pages |
+|------|------------|------|-------|
+| Konara Bandara | 10952449 | Project Vision & User Identity | HomePage, LoginPage, RegisterPage, StorePage, ProductDetailPage |
+| Mudiyanselage Herath | 10952432 | 2D Architectural Engineer | EditorPage (2D Layout Module) |
+| Thennakoon Thennakoon | 10953085 | 3D Visualisation Lead | EditorPage (3D Viewport Module) |
+| Jothikalananthan Janusha | 10952971 | Interaction Designer (HCI) | CartPage, CheckoutPage, OrdersPage |
+| Dasanayaka Seneviratne | 10953043 | Portfolio Manager | MyDesignsPage |
+| Bethmage Perera | 10952829 | Inventory & Store Manager | AdminPage |
 
 ## 🛠️ Tech Stack
 
@@ -48,13 +48,14 @@ RoomVis allows designers and customers to visualise how furniture items would lo
 ## 🚀 Features
 - Secure user login and registration (JWT-based)
 - Admin and regular user account types
-- Room setup — define width, depth, and shape (Rectangle / L-Shape)
-- 2D top-down floor plan layout
+- Room setup — define width, depth, and shape (Rectangle / L-Shape / T-Shape / U-Shape)
+- 2D top-down floor plan with drag-and-drop furniture placement
 - 3D perspective visualisation with realistic lighting and shadows
 - Furniture scaling, rotation, and colour customisation
 - Undo/Redo (20-step history) with keyboard shortcuts
 - Toast notifications and system feedback
 - Save, rename, edit and delete designs
+- Cart, Checkout and Orders management
 - Admin furniture inventory management
 - Furniture catalog with product details and category filtering
 - Template system (Admin official templates + user private designs)
@@ -62,12 +63,12 @@ RoomVis allows designers and customers to visualise how furniture items would lo
 ## 📁 Project Structure
 ```
 RoomVis/
-├── client/          # React frontend (Vite)
+├── frontend/        # React frontend (Vite)
 │   ├── src/
 │   │   ├── pages/   # HomePage, LoginPage, RegisterPage, EditorPage, etc.
 │   │   ├── components/
 │   │   └── context/
-├── server/          # Node.js + Express backend
+├── backend/         # Node.js + Express backend
 │   ├── models/      # Mongoose schemas
 │   ├── routes/      # API routes
 │   └── middleware/
