@@ -415,6 +415,9 @@ const LibraryItem = React.memo(({ item, onClick }) => {
         <div
             className="p-3 bg-white border border-gray-100 rounded-2xl hover:border-[#A85517] hover:shadow-md transition-all group cursor-pointer"
             onClick={() => onClick(item)}
+            role="button"
+            aria-label={`Add ${item.name} to room`}
+            title={`Add ${item.name} ($${item.price})`}
         >
             <div className="flex gap-4">
                 <div className="w-16 h-16 bg-gray-50 rounded-xl overflow-hidden shrink-0">
@@ -594,6 +597,12 @@ const EditorPage = () => {
     const [saveStatus, setSaveStatus] = useState('idle'); // 'idle' | 'saving' | 'success'
     const [isDragging3D, setIsDragging3D] = useState(false);
     const [dragOffset, setDragOffset] = useState({ x: 0, z: 0 });
+    const [toast, setToast] = useState({ visible: false, message: '' });
+
+    const showToast = useCallback((message) => {
+        setToast({ visible: true, message });
+        setTimeout(() => setToast({ visible: false, message: '' }), 2000);
+    }, []);
 
     // 2. Room Configuration
     const [roomConfig, setRoomConfig] = useState({
@@ -620,6 +629,13 @@ const EditorPage = () => {
     const [redoStack, setRedoStack] = useState([]);
     const viewportRef = useRef(null);
     const roomRef = useRef(null);
+    const orbitControlsRef = useRef(null);
+
+    const resetCamera = () => {
+        if (orbitControlsRef.current) {
+            orbitControlsRef.current.reset();
+        }
+    };
 
     // --- Memoized Computations ---
     const filteredLibrary = useMemo(() => {
@@ -681,7 +697,7 @@ const EditorPage = () => {
         setRedoStack([]);
     }, [placedItems, roomConfig]);
 
-    const handleUndo = () => {
+    const handleUndo = useCallback(() => {
         if (history.length === 0) return;
         
         // Save current to redo stack
@@ -694,9 +710,10 @@ const EditorPage = () => {
         setPlacedItems(lastState.placedItems);
         setRoomConfig(lastState.roomConfig);
         setHistory(prev => prev.slice(0, -1));
-    };
+        showToast('Undo successful');
+    }, [history, placedItems, roomConfig, showToast]);
 
-    const handleRedo = () => {
+    const handleRedo = useCallback(() => {
         if (redoStack.length === 0) return;
 
         // Save current to history
@@ -709,13 +726,15 @@ const EditorPage = () => {
         setPlacedItems(nextState.placedItems);
         setRoomConfig(nextState.roomConfig);
         setRedoStack(prev => prev.slice(0, -1));
-    };
+        showToast('Redo successful');
+    }, [redoStack, placedItems, roomConfig, showToast]);
 
     const clearRoom = () => {
         if (window.confirm('Are you sure you want to clear all items in the room?')) {
             saveToHistory();
             setPlacedItems([]);
             setSelectedId(null);
+            showToast('Room cleared');
         }
     };
 
@@ -732,6 +751,7 @@ const EditorPage = () => {
             link.download = `room-design-${currentDesignName.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}.png`;
             link.href = dataUrl;
             link.click();
+            showToast('Screenshot saved');
         } catch (err) {
             console.error('Screenshot failed:', err);
             alert('Failed to take screenshot. Please try again.');
@@ -920,7 +940,8 @@ const EditorPage = () => {
         };
         setPlacedItems(prev => [...prev, newItem]);
         setSelectedId(newItem.instanceId);
-    }, [saveToHistory]);
+        showToast(`${newItem.name} added to room`);
+    }, [saveToHistory, showToast]);
 
     // Item management logic removed (now handled by memoized updateItemProperty)
 
@@ -936,6 +957,7 @@ const EditorPage = () => {
         saveToHistory();
         setPlacedItems(prev => prev.filter(item => item.instanceId !== id));
         if (selectedId === id) setSelectedId(null);
+        showToast('Item removed');
     };
 
     // --- Drag & Drop Handlers ---
@@ -987,6 +1009,17 @@ const EditorPage = () => {
     }, []);
 
     useEffect(() => {
+        const handleKeyDown = (e) => {
+            // Undo/Redo
+            if (e.ctrlKey && e.key.toLowerCase() === 'z') { e.preventDefault(); handleUndo(); }
+            if (e.ctrlKey && e.key.toLowerCase() === 'y') { e.preventDefault(); handleRedo(); }
+            // Delete
+            if ((e.key === 'Delete' || e.key === 'Backspace') && selectedId && !['INPUT', 'TEXTAREA'].includes(e.target.tagName)) {
+                removeItem(selectedId);
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
         if (isDragging) {
             window.addEventListener('mousemove', handleMouseMove);
             window.addEventListener('mouseup', handleMouseUp);
@@ -995,10 +1028,11 @@ const EditorPage = () => {
             window.removeEventListener('mouseup', handleMouseUp);
         }
         return () => {
+            window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('mousemove', handleMouseMove);
             window.removeEventListener('mouseup', handleMouseUp);
         };
-    }, [isDragging, handleMouseMove, handleMouseUp]);
+    }, [isDragging, handleMouseMove, handleMouseUp, handleUndo, handleRedo, selectedId]);
 
     const selectedItem = useMemo(() => placedItems.find(i => i.instanceId === selectedId), [placedItems, selectedId]);
 
@@ -1022,6 +1056,8 @@ const EditorPage = () => {
                     <div className="flex items-center gap-3">
                         <Link 
                             to="/designs" 
+                            aria-label="View My Designs"
+                            title="My Designs"
                             className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-[#A85517] transition-all group"
                         >
                             <LayoutGrid className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
@@ -1032,6 +1068,8 @@ const EditorPage = () => {
                             type="text"
                             value={currentDesignName}
                             onChange={(e) => setCurrentDesignName(e.target.value)}
+                            aria-label="Design Name"
+                            title="Edit design name"
                             className="text-xl font-serif font-black text-gray-900 tracking-tight bg-transparent border-b-2 border-transparent hover:border-gray-100 focus:border-[#A85517] focus:outline-none transition-all px-1 w-64"
                             placeholder="Design Name"
                         />
@@ -1053,12 +1091,16 @@ const EditorPage = () => {
                     <div className="bg-gray-100/80 p-1 rounded-xl flex items-center mr-6">
                         <button
                             onClick={() => setViewMode('2D')}
+                            aria-label="Switch to 2D Layout View"
+                            title="2D Layout"
                             className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${viewMode === '2D' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
                         >
                             <LayoutGrid className="w-3.5 h-3.5" /> 2D Layout
                         </button>
                         <button
                             onClick={() => setViewMode('3D')}
+                            aria-label="Switch to 3D Perspective View"
+                            title="3D View"
                             className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${viewMode === '3D' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
                         >
                             <BoxIcon className="w-3.5 h-3.5" /> 3D View
@@ -1069,21 +1111,24 @@ const EditorPage = () => {
                     <div className="flex items-center gap-1 mr-4">
                         <button
                             onClick={() => setSnapEnabled(!snapEnabled)}
+                            aria-label={snapEnabled ? "Disable Grid Snapping" : "Enable Grid Snapping"}
                             className={`p-2 rounded-lg border transition-all ${snapEnabled ? 'bg-orange-50 border-orange-200 text-[#A85517]' : 'bg-white border-gray-100 text-gray-400 hover:border-gray-300'}`}
-                            title="Toggle Snap"
+                            title="Toggle Snap (0.1m Grid)"
                         >
                             <Magnet className="w-4 h-4" />
                         </button>
                         <button
                             onClick={() => setShadowsEnabled(!shadowsEnabled)}
+                            aria-label={shadowsEnabled ? "Disable Shadows" : "Enable Shadows"}
                             className={`p-2 rounded-lg border transition-all ${shadowsEnabled ? 'bg-orange-50 border-orange-200 text-[#A85517]' : 'bg-white border-gray-100 text-gray-400 hover:border-gray-300'}`}
-                            title="Toggle Shadows"
+                            title="Toggle Shadows & Lighting Effects"
                         >
                             <Sun className="w-4 h-4" />
                         </button>
                         <button
                             onClick={handleUndo}
                             disabled={history.length === 0}
+                            aria-label="Undo last action"
                             className={`p-2 rounded-lg border transition-all ${history.length === 0 ? 'bg-gray-50 border-gray-100 text-gray-200 cursor-not-allowed' : 'bg-white border-gray-100 text-gray-400 hover:border-gray-300'}`}
                             title="Undo (Ctrl+Z)"
                         >
@@ -1092,6 +1137,7 @@ const EditorPage = () => {
                         <button
                             onClick={handleRedo}
                             disabled={redoStack.length === 0}
+                            aria-label="Redo last action"
                             className={`p-2 rounded-lg border transition-all ${redoStack.length === 0 ? 'bg-gray-50 border-gray-100 text-gray-200 cursor-not-allowed' : 'bg-white border-gray-100 text-gray-400 hover:border-gray-300'}`}
                             title="Redo (Ctrl+Y)"
                         >
@@ -1099,6 +1145,7 @@ const EditorPage = () => {
                         </button>
                         <button
                             onClick={clearRoom}
+                            aria-label="Clear all items from the room"
                             className="p-2 rounded-lg border border-gray-100 bg-white text-gray-400 hover:border-gray-300 transition-all"
                             title="Clear Room"
                         >
@@ -1106,8 +1153,9 @@ const EditorPage = () => {
                         </button>
                         <button
                             onClick={takeScreenshot}
+                            aria-label="Take a screenshot of the current design"
                             className="p-2 rounded-lg border border-gray-100 bg-white text-gray-400 hover:border-gray-300 transition-all"
-                            title="Take Screenshot"
+                            title="Export Design (PNG)"
                         >
                             <Camera className="w-4 h-4" />
                         </button>
@@ -1116,6 +1164,7 @@ const EditorPage = () => {
                     <button
                         onClick={saveDesign}
                         disabled={saveStatus === 'saving'}
+                        aria-label="Save current design to account"
                         className={`px-6 py-2 rounded-xl font-bold text-sm tracking-wide shadow-lg transition-all flex items-center gap-2 ${saveStatus === 'success'
                             ? 'bg-green-500 text-white shadow-green-200'
                             : 'bg-[#A85517] hover:bg-[#8B4413] text-white shadow-orange-900/10'
@@ -1150,6 +1199,8 @@ const EditorPage = () => {
                                     <input
                                         type="number"
                                         value={roomConfig.width}
+                                        aria-label="Room Width in meters"
+                                        title="Set room width"
                                         onChange={(e) => handleRoomInput('width', Number(e.target.value))}
                                         className="w-full bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 text-sm font-bold focus:ring-2 focus:ring-orange-100 transition-all outline-none"
                                     />
@@ -1159,6 +1210,8 @@ const EditorPage = () => {
                                     <input
                                         type="number"
                                         value={roomConfig.depth}
+                                        aria-label="Room Depth in meters"
+                                        title="Set room depth"
                                         onChange={(e) => handleRoomInput('depth', Number(e.target.value))}
                                         className="w-full bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 text-sm font-bold focus:ring-2 focus:ring-orange-100 transition-all outline-none"
                                     />
@@ -1178,6 +1231,8 @@ const EditorPage = () => {
                                     <button
                                         key={shape.id}
                                         onClick={() => handleRoomInput('shape', shape.id)}
+                                        aria-label={`Select ${shape.label} room shape`}
+                                        title={`${shape.label} Layout`}
                                         className={`flex flex-col items-center gap-1.5 p-2.5 rounded-xl border-2 transition-all ${roomConfig.shape === shape.id
                                             ? 'border-[#A85517] bg-orange-50'
                                             : 'border-gray-100 bg-gray-50 hover:border-gray-300'
@@ -1212,6 +1267,8 @@ const EditorPage = () => {
                                         <input
                                             type="color"
                                             value={roomConfig.wallColor}
+                                            aria-label="Pick custom wall color"
+                                            title="Custom Wall Color"
                                             onChange={(e) => handleRoomInput('wallColor', e.target.value)}
                                             className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                                         />
@@ -1223,6 +1280,8 @@ const EditorPage = () => {
                                     <button
                                         key={color}
                                         onClick={() => handleRoomInput('wallColor', color)}
+                                        aria-label={`Set wall color to ${color}`}
+                                        title={`Color: ${color}`}
                                         className={`w-7 h-7 rounded-full border-2 transition-all ${roomConfig.wallColor === color ? 'border-[#A85517] scale-110 shadow-md' : 'border-transparent hover:scale-105'}`}
                                         style={{ backgroundColor: color }}
                                     />
@@ -1244,6 +1303,8 @@ const EditorPage = () => {
                                         <input
                                             type="color"
                                             value={roomConfig.floorColor}
+                                            aria-label="Pick custom floor color"
+                                            title="Custom Floor Color"
                                             onChange={(e) => handleRoomInput('floorColor', e.target.value)}
                                             className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                                         />
@@ -1255,6 +1316,8 @@ const EditorPage = () => {
                                     <button
                                         key={color}
                                         onClick={() => handleRoomInput('floorColor', color)}
+                                        aria-label={`Set floor color to ${color}`}
+                                        title={`Color: ${color}`}
                                         className={`w-7 h-7 rounded-full border-2 transition-all ${roomConfig.floorColor === color ? 'border-[#A85517] scale-110 shadow-md' : 'border-transparent hover:scale-105'}`}
                                         style={{ backgroundColor: color }}
                                     />
@@ -1279,6 +1342,8 @@ const EditorPage = () => {
                                 type="text"
                                 placeholder="Search furniture..."
                                 value={searchQuery}
+                                aria-label="Search furniture library"
+                                title="Search items"
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 className="w-full bg-gray-50 border border-gray-100 rounded-xl pl-10 pr-4 py-2.5 text-xs font-medium outline-none focus:bg-white focus:ring-2 focus:ring-orange-100 transition-all"
                             />
@@ -1317,6 +1382,7 @@ const EditorPage = () => {
                                 <Suspense fallback={null}>
                                     <PerspectiveCamera makeDefault position={[12, 12, 12]} fov={40} />
                                     <OrbitControls
+                                        ref={orbitControlsRef}
                                         makeDefault
                                         enabled={!isDragging3D}
                                         minPolarAngle={0}
@@ -1361,10 +1427,20 @@ const EditorPage = () => {
                             <div className="absolute top-20 right-6 bg-white/80 backdrop-blur-md px-4 py-2 rounded-xl text-[10px] font-black text-gray-500 uppercase tracking-widest flex items-center gap-2 border border-white/20 animate-in fade-in slide-in-from-top-4 duration-700">
                                 <BoxIcon className="w-3 h-3 text-[#A85517]" /> Perspective Active
                             </div>
-                            <div className="absolute bottom-6 left-6 bg-black/60 backdrop-blur-md px-4 py-2 rounded-xl text-[10px] font-bold text-white uppercase tracking-widest flex items-center gap-3 pointer-events-none">
-                                <span>Drag to Orbit</span>
-                                <div className="w-px h-2 bg-white/20" />
-                                <span>Scroll to Zoom</span>
+                            <div className="absolute bottom-6 left-6 flex items-center gap-4">
+                                <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-xl text-[10px] font-bold text-white uppercase tracking-widest flex items-center gap-3 pointer-events-none">
+                                    <span>Drag to Orbit</span>
+                                    <div className="w-px h-2 bg-white/20" />
+                                    <span>Scroll to Zoom</span>
+                                </div>
+                                <button
+                                    onClick={resetCamera}
+                                    className="bg-white/90 backdrop-blur-md px-4 py-2 rounded-xl text-[10px] font-black text-gray-900 uppercase tracking-widest flex items-center gap-2 hover:bg-[#A85517] hover:text-white transition-all shadow-lg border border-white/20"
+                                    aria-label="Reset 3D camera view"
+                                    title="Reset View"
+                                >
+                                    <RotateCcw className="w-3 h-3" /> Reset View
+                                </button>
                             </div>
                         </div>
                     ) : (
@@ -1379,6 +1455,14 @@ const EditorPage = () => {
                             ROOM_SHAPES={ROOM_SHAPES}
                             roomRef={roomRef}
                         />
+                    )}
+
+                    {/* Toast Notification Overlay */}
+                    {toast.visible && (
+                        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 bg-gray-900/90 text-white px-6 py-2 rounded-full text-xs font-bold shadow-2xl backdrop-blur-md animate-in fade-in slide-in-from-bottom-2 duration-300 z-[100] flex items-center gap-3 border border-white/10">
+                            <div className="w-1.5 h-1.5 bg-[#A85517] rounded-full animate-pulse" />
+                            {toast.message}
+                        </div>
                     )}
                 </main>
 
@@ -1396,6 +1480,8 @@ const EditorPage = () => {
                         {selectedItem && (
                             <button
                                 onClick={() => removeItem(selectedId)}
+                                aria-label={`Delete ${selectedItem.name}`}
+                                title="Delete Item"
                                 className="p-2 bg-red-50 text-red-400 rounded-lg hover:bg-red-100 transition-all"
                             >
                                 <Trash2 className="w-4 h-4" />
@@ -1473,44 +1559,57 @@ const EditorPage = () => {
 
                             {/* Scaling */}
                             <div className="space-y-6">
-                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Scale</p>
-                                <div className="space-y-4">
-                                    <div className="flex justify-between items-center text-[10px] font-bold text-gray-500">
-                                        <span>Uniform Scale</span>
-                                        <span>{selectedItem.scaleX}%</span>
-                                    </div>
-                                    <input
-                                        type="range"
-                                        min="50"
-                                        max="300"
-                                        value={selectedItem.scaleX}
-                                        onMouseDown={saveToHistory}
-                                        onChange={(e) => {
-                                            const val = Number(e.target.value);
-                                            setPlacedItems(prev => prev.map(item => {
-                                                if (item.instanceId !== selectedId) return item;
-                                                const updated = { ...item, scaleX: val, scaleY: val };
-                                                const { x, y } = clampPosition(updated, roomConfig.width, roomConfig.depth);
-                                                return { ...updated, x, y };
-                                            }));
-                                        }}
-                                        className="w-full h-1.5 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-[#A85517]"
-                                    />
+                                <div className="flex items-center justify-between">
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Scaling</p>
                                     <button
                                         onClick={() => {
                                             saveToHistory();
-                                            const val = 100;
-                                            setPlacedItems(prev => prev.map(item => {
-                                                if (item.instanceId !== selectedId) return item;
-                                                const updated = { ...item, scaleX: val, scaleY: val };
-                                                const { x, y } = clampPosition(updated, roomConfig.width, roomConfig.depth);
-                                                return { ...updated, x, y };
-                                            }));
+                                            setPlacedItems(prev => prev.map(item => 
+                                                item.instanceId === selectedId ? { ...item, scaleX: 100, scaleY: 100 } : item
+                                            ));
                                         }}
                                         className="text-[9px] font-black text-[#A85517] uppercase tracking-widest hover:underline"
                                     >
-                                        Reset scale
+                                        Reset All
                                     </button>
+                                </div>
+                                
+                                <div className="space-y-5">
+                                    {/* Width Scale */}
+                                    <div className="space-y-3">
+                                        <div className="flex justify-between items-center text-[10px] font-bold text-gray-500">
+                                            <span>Width (%)</span>
+                                            <span className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-900">{selectedItem.scaleX}%</span>
+                                        </div>
+                                        <input
+                                            type="range"
+                                            min="30"
+                                            max="300"
+                                            value={selectedItem.scaleX}
+                                            onMouseDown={saveToHistory}
+                                            aria-label="Adjust width scale"
+                                            onChange={(e) => updateItemProperty(selectedId, 'scaleX', Number(e.target.value))}
+                                            className="w-full h-1.5 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-[#A85517]"
+                                        />
+                                    </div>
+
+                                    {/* Depth Scale */}
+                                    <div className="space-y-3">
+                                        <div className="flex justify-between items-center text-[10px] font-bold text-gray-500">
+                                            <span>Depth (%)</span>
+                                            <span className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-900">{selectedItem.scaleY}%</span>
+                                        </div>
+                                        <input
+                                            type="range"
+                                            min="30"
+                                            max="300"
+                                            value={selectedItem.scaleY}
+                                            onMouseDown={saveToHistory}
+                                            aria-label="Adjust depth scale"
+                                            onChange={(e) => updateItemProperty(selectedId, 'scaleY', Number(e.target.value))}
+                                            className="w-full h-1.5 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-[#A85517]"
+                                        />
+                                    </div>
                                 </div>
                             </div>
 
@@ -1524,6 +1623,8 @@ const EditorPage = () => {
                                             step="0.1"
                                             value={selectedItem.x.toFixed(1)}
                                             onFocus={saveToHistory}
+                                            aria-label="Item X position"
+                                            title="Position X (Meters)"
                                             onChange={(e) => updateItemProperty(selectedId, 'x', Number(e.target.value))}
                                             className="w-full bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-xs font-bold transition-all focus:ring-1 focus:ring-orange-100 outline-none"
                                         />
@@ -1534,6 +1635,8 @@ const EditorPage = () => {
                                             step="0.1"
                                             value={selectedItem.y.toFixed(1)}
                                             onFocus={saveToHistory}
+                                            aria-label="Item Y position"
+                                            title="Position Y (Meters)"
                                             onChange={(e) => updateItemProperty(selectedId, 'y', Number(e.target.value))}
                                             className="w-full bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-xs font-bold transition-all focus:ring-1 focus:ring-orange-100 outline-none"
                                         />

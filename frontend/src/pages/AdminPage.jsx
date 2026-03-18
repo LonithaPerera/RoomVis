@@ -5,8 +5,10 @@ import { AuthContext } from '../context/AuthContext';
 import {
     LayoutGrid, Package, Users, BarChart3, Trash2, Pencil,
     Plus, X, Check, Star, Search, ChevronDown, AlertTriangle,
-    ArrowLeft, Layers, ShoppingBag
+    ArrowLeft, Layers, ShoppingBag, Ruler, RefreshCw
 } from 'lucide-react';
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 
 const CATEGORIES = ['Chairs', 'Tables', 'Sofas', 'Beds', 'Storage', 'Other'];
 
@@ -38,8 +40,58 @@ const StatCard = ({ label, value, icon: Icon, color, bg, delta }) => (
 // ─── Add/Edit Furniture Modal ───────────────────────────────────────────────
 
 const FurnitureModal = ({ initial, onClose, onSave }) => {
+
     const [form, setForm] = useState(initial || EMPTY_FORM);
     const [saving, setSaving] = useState(false);
+    const [calculating, setCalculating] = useState(false);
+
+    const measureModel = async () => {
+        const file = form.model;
+        const url = form.modelUrl;
+        
+        if (!file && !url) {
+            alert('Please select a GLB file or provide a model URL first.');
+            return;
+        }
+
+        setCalculating(true);
+        try {
+            const loader = new GLTFLoader();
+            let modelPath;
+
+            if (file) {
+                modelPath = URL.createObjectURL(file);
+            } else {
+                modelPath = url.startsWith('/') ? `${import.meta.env.VITE_API_URL}${url}` : url;
+            }
+
+            const gltf = await new Promise((resolve, reject) => {
+                loader.load(modelPath, resolve, undefined, reject);
+            });
+
+            const box = new THREE.Box3().setFromObject(gltf.scene);
+            const size = new THREE.Vector3();
+            box.getSize(size);
+
+            // Per user request: treat 1 unit in GLB as 1 CM directly
+            setForm(prev => ({
+                ...prev,
+                dimensions: {
+                    width: Math.round(size.x),
+                    height: Math.round(size.y),
+                    depth: Math.round(size.z)
+                }
+            }));
+
+            if (file) URL.revokeObjectURL(modelPath);
+            
+        } catch (err) {
+            console.error('Error measuring model:', err);
+            alert('Failed to measure model dimensions.');
+        } finally {
+            setCalculating(false);
+        }
+    };
 
     const set = (field, val) => setForm(prev => ({ ...prev, [field]: val }));
     const setDim = (dim, val) => setForm(prev => ({ ...prev, dimensions: { ...prev.dimensions, [dim]: val } }));
@@ -99,13 +151,31 @@ const FurnitureModal = ({ initial, onClose, onSave }) => {
                             <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Colors (comma-separated hex)</label>
                             <input value={typeof form.colors === 'string' ? form.colors : form.colors?.join(', ')} onChange={e => set('colors', e.target.value)} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-orange-100" placeholder="#111827, #8B4513" />
                         </div>
-                        <div className="col-span-2 grid grid-cols-3 gap-3">
-                            {['width', 'height', 'depth'].map(dim => (
-                                <div key={dim}>
-                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">{dim} (cm)</label>
-                                    <input type="number" value={form.dimensions[dim]} onChange={e => setDim(dim, e.target.value)} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-orange-100" placeholder="100" />
-                                </div>
-                            ))}
+                        <div className="col-span-2 space-y-3">
+                            <div className="flex items-center justify-between">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Dimensions (cm) - Auto Measure</label>
+                                <button 
+                                    type="button" 
+                                    onClick={measureModel}
+                                    disabled={calculating}
+                                    className="flex items-center gap-1.5 text-[9px] font-black text-[#A85517] uppercase tracking-widest hover:text-[#8B4413] transition-colors bg-orange-50 px-2.5 py-1.5 rounded-lg border border-orange-100"
+                                >
+                                    {calculating ? (
+                                        <RefreshCw className="w-2.5 h-2.5 animate-spin" />
+                                    ) : (
+                                        <Ruler className="w-2.5 h-2.5" />
+                                    )}
+                                    {calculating ? 'Measuring...' : 'Measure GLB'}
+                                </button>
+                            </div>
+                            <div className="grid grid-cols-3 gap-3">
+                                {['width', 'height', 'depth'].map(dim => (
+                                    <div key={dim}>
+                                        <label className="block text-[9px] font-bold text-gray-500 mb-1 capitalize">{dim}</label>
+                                        <input type="number" value={form.dimensions[dim]} onChange={e => setDim(dim, e.target.value)} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-orange-100 placeholder:text-gray-300" placeholder="100" />
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                         <div className="col-span-2 grid grid-cols-2 gap-4">
                             <div>
