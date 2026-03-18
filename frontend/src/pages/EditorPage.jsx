@@ -331,7 +331,7 @@ const Furniture3D = React.memo(({
     const { 
         rotation = 0,
     } = item;
-    const rotRad = (rotation * Math.PI) / 180;
+    const rotRad = -(rotation * Math.PI) / 180;
 
     return (
         <group
@@ -482,6 +482,20 @@ const ThrottledColorPicker = React.memo(({ value, onChange, onFocus }) => {
     );
 });
 
+const OrthographicCameraUpdater = ({ width, depth }) => {
+    const { camera } = useThree();
+    useEffect(() => {
+        if (camera.isOrthographicCamera) {
+            camera.left = -width / 2;
+            camera.right = width / 2;
+            camera.top = depth / 2;
+            camera.bottom = -depth / 2;
+            camera.updateProjectionMatrix();
+        }
+    }, [width, depth, camera]);
+    return null;
+};
+
 const ThreeDTopDownItems = React.memo(({ roomConfig, placedItems }) => {
     // Use deferredValue to prevent the expensive 3D render from blocking the main UI thread during dragging
     const deferredItems = React.useDeferredValue(placedItems);
@@ -503,6 +517,7 @@ const ThreeDTopDownItems = React.memo(({ roomConfig, placedItems }) => {
                 gl={{ alpha: true, antialias: true, powerPreference: "high-performance", preserveDrawingBuffer: true }}
                 style={{ background: 'transparent' }}
             >
+                <OrthographicCameraUpdater width={roomConfig.width} depth={roomConfig.depth} />
                 <ambientLight intensity={1.8} />
                 <directionalLight position={[0, 50, 0]} intensity={1.5} />
                 <hemisphereLight skyColor="#ffffff" groundColor="#444444" intensity={0.5} />
@@ -511,7 +526,7 @@ const ThreeDTopDownItems = React.memo(({ roomConfig, placedItems }) => {
                     <group 
                         key={item.instanceId} 
                         position={[item.x, 0, item.y]} 
-                        rotation={[0, (item.rotation * Math.PI) / 180, 0]}
+                        rotation={[0, -(item.rotation * Math.PI) / 180, 0]}
                     >
                         <FurnitureModel item={item} />
                     </group>
@@ -536,7 +551,7 @@ const Room2DViewport = React.memo(({
         <div className="w-full h-full p-20 flex items-center justify-center relative select-none overflow-auto animate-in fade-in duration-700">
             <div
                 ref={roomRef}
-                className="relative shadow-2xl border-4 border-white transition-all duration-300 overflow-hidden"
+                className="relative shadow-2xl border-4 border-white overflow-hidden"
                 style={{
                     width: `${roomConfig.width * PIXELS_PER_METER}px`,
                     height: `${roomConfig.depth * PIXELS_PER_METER}px`,
@@ -560,8 +575,8 @@ const Room2DViewport = React.memo(({
                         onClick={(e) => { e.stopPropagation(); setSelectedId(item.instanceId); }}
                         className={`absolute cursor-move flex flex-col items-center justify-center group overflow-hidden ${isDragging && selectedId === item.instanceId ? '' : 'transition-all'} ${selectedId === item.instanceId ? 'ring-2 ring-[#A85517] z-20 shadow-xl scale-[1.01]' : 'hover:ring-1 hover:ring-white/50 z-10'}`}
                         style={{
-                            left: `${(item.x + roomConfig.width / 2 - item.width / 2) * PIXELS_PER_METER}px`,
-                            top: `${(item.y + roomConfig.depth / 2 - item.depth / 2) * PIXELS_PER_METER}px`,
+                            left: `calc(50% + ${(item.x - (item.width * (item.scaleX / 100)) / 2) * PIXELS_PER_METER}px)`,
+                            top: `calc(50% + ${(item.y - (item.depth * (item.scaleY / 100)) / 2) * PIXELS_PER_METER}px)`,
                             width: `${item.width * (item.scaleX / 100) * PIXELS_PER_METER}px`,
                             height: `${item.depth * (item.scaleY / 100) * PIXELS_PER_METER}px`,
                             backgroundColor: selectedId === item.instanceId ? 'rgba(168, 85, 23, 0.05)' : 'transparent',
@@ -948,10 +963,10 @@ const EditorPage = () => {
     // Task: Re-clamp all items when room size changes
     useEffect(() => {
         setPlacedItems(prev => prev.map(item => {
-            const { x, y } = clampPosition(item, roomConfig.width, roomConfig.depth);
+            const { x, y } = clampPosition(item, roomConfig.width, roomConfig.depth, roomConfig.shape);
             return { ...item, x, y };
         }));
-    }, [roomConfig.width, roomConfig.depth, clampPosition]);
+    }, [roomConfig.width, roomConfig.depth, roomConfig.shape, clampPosition]);
 
     const removeItem = (id) => {
         saveToHistory();
@@ -1424,9 +1439,7 @@ const EditorPage = () => {
                                     )}
                                 </Suspense>
                             </Canvas>
-                            <div className="absolute top-20 right-6 bg-white/80 backdrop-blur-md px-4 py-2 rounded-xl text-[10px] font-black text-gray-500 uppercase tracking-widest flex items-center gap-2 border border-white/20 animate-in fade-in slide-in-from-top-4 duration-700">
-                                <BoxIcon className="w-3 h-3 text-[#A85517]" /> Perspective Active
-                            </div>
+
                             <div className="absolute bottom-6 left-6 flex items-center gap-4">
                                 <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-xl text-[10px] font-bold text-white uppercase tracking-widest flex items-center gap-3 pointer-events-none">
                                     <span>Drag to Orbit</span>
@@ -1575,10 +1588,9 @@ const EditorPage = () => {
                                 </div>
                                 
                                 <div className="space-y-5">
-                                    {/* Width Scale */}
                                     <div className="space-y-3">
                                         <div className="flex justify-between items-center text-[10px] font-bold text-gray-500">
-                                            <span>Width (%)</span>
+                                            <span>Scale (%)</span>
                                             <span className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-900">{selectedItem.scaleX}%</span>
                                         </div>
                                         <input
@@ -1587,26 +1599,16 @@ const EditorPage = () => {
                                             max="300"
                                             value={selectedItem.scaleX}
                                             onMouseDown={saveToHistory}
-                                            aria-label="Adjust width scale"
-                                            onChange={(e) => updateItemProperty(selectedId, 'scaleX', Number(e.target.value))}
-                                            className="w-full h-1.5 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-[#A85517]"
-                                        />
-                                    </div>
-
-                                    {/* Depth Scale */}
-                                    <div className="space-y-3">
-                                        <div className="flex justify-between items-center text-[10px] font-bold text-gray-500">
-                                            <span>Depth (%)</span>
-                                            <span className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-900">{selectedItem.scaleY}%</span>
-                                        </div>
-                                        <input
-                                            type="range"
-                                            min="30"
-                                            max="300"
-                                            value={selectedItem.scaleY}
-                                            onMouseDown={saveToHistory}
-                                            aria-label="Adjust depth scale"
-                                            onChange={(e) => updateItemProperty(selectedId, 'scaleY', Number(e.target.value))}
+                                            aria-label="Adjust uniform scale"
+                                            onChange={(e) => {
+                                                const val = Number(e.target.value);
+                                                setPlacedItems(prev => prev.map(item => {
+                                                    if (item.instanceId !== selectedId) return item;
+                                                    const updated = { ...item, scaleX: val, scaleY: val };
+                                                    const { x, y } = clampPosition(updated, roomConfig.width, roomConfig.depth, roomConfig.shape);
+                                                    return { ...updated, x, y };
+                                                }));
+                                            }}
                                             className="w-full h-1.5 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-[#A85517]"
                                         />
                                     </div>
@@ -1647,7 +1649,7 @@ const EditorPage = () => {
                             <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
                                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Actual Size</p>
                                 <p className="text-xs font-black text-gray-900">
-                                    {((selectedItem.width || 1) * (selectedItem.scaleX || 100) / 100 * 100).toFixed(0)} × {((selectedItem.depth || 1) * (selectedItem.scaleY || 100) / 100 * 100).toFixed(0)} cm
+                                    {((selectedItem.width || 1) * (selectedItem.scaleX || 100) / 100 * 100).toFixed(0)} × {((selectedItem.depth || 1) * (selectedItem.scaleY || 100) / 100 * 100).toFixed(0)} × {((selectedItem.height || 0.75) * (selectedItem.scaleX || 100) / 100 * 100).toFixed(0)} cm
                                 </p>
                             </div>
                         </div>
