@@ -38,7 +38,7 @@ RoomVis allows designers and customers to visualise how furniture items would lo
 - **API:** RESTful
 
 ### 🗄️ Database
-- **Database:** MongoDB (NoSQL)
+- **Database:** MongoDB Atlas (NoSQL)
 - **ODM:** Mongoose
 
 ### 🛠️ Utilities
@@ -48,17 +48,18 @@ RoomVis allows designers and customers to visualise how furniture items would lo
 ## 🚀 Features
 - Secure user login and registration (JWT-based)
 - Admin and regular user account types
-- Room setup — define width, depth, and shape (Rectangle / L-Shape)
-- 2D top-down floor plan with drag-and-drop furniture placement
-- 3D perspective visualisation with realistic lighting and shadows
-- Furniture scaling, rotation, and colour customisation
-- Undo/Redo with keyboard shortcuts
+- Room setup — Rectangle, L-Shape with custom dimensions and wall colours
+- Structural elements — doors and windows support
+- 2D top-down floor plan with drag-and-drop, grid snapping, and boundary clamping
+- 3D perspective visualisation with realistic lighting, shadows, and orbit controls
+- Furniture scaling, rotation, movement, and colour customisation
+- Undo/Redo with keyboard shortcuts (Ctrl+Z / Ctrl+Y)
 - Toast notifications and system feedback
-- Save, rename, edit, and delete designs
-- Cart, Checkout, and Orders management
-- Admin furniture inventory management
+- Save, rename, edit, and delete designs with auto-generated thumbnails
+- Admin furniture inventory management (.glb model uploads)
 - Furniture catalog with product details and category filtering
 - Template system (Admin official templates + user private designs)
+- Cart, Checkout, and Orders management
 
 ## 📁 Project Structure
 ```
@@ -77,7 +78,15 @@ RoomVis/
 ```
 
 ## 📦 External Resources
-*All external 3D models, assets, and libraries will be credited here as development progresses.*
+- Three.js — https://threejs.org/ (MIT License)
+- React Three Fiber — https://docs.pmnd.rs/react-three-fiber (MIT License)
+- React Three Drei — https://github.com/pmndrs/drei (MIT License)
+- Tailwind CSS — https://tailwindcss.com/ (MIT License)
+- Lucide React — https://lucide.dev/ (ISC License)
+- html-to-image — https://github.com/bubkoo/html-to-image (MIT License)
+- Mongoose — https://mongoosejs.com/ (MIT License)
+- Bcryptjs — https://github.com/dcodeIO/bcrypt.js (MIT License)
+- All GLTF/GLB 3D furniture models used in the catalog are credited within the application
 
 ## 📅 Submission Deadline
 19th March 2026 — PUSL3122 Plymouth University Sri Lanka
